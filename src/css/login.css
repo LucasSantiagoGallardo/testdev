@@ -1,0 +1,77 @@
+/* styles/Home.module.css */
+
+.container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    background: linear-gradient(135deg, #c2e9fb, #a1c4fd); /* Degradado celeste pálido */
+  }
+  
+  .openModalButton {
+    padding: 15px 30px;
+    font-size: 18px;
+    color: white;
+    background-color: #007acc;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
+  
+  .openModalButton:hover {
+    background-color: #005999;
+  }
+  
+  .modal {
+    width: 300px;
+    padding: 20px;
+    background: white;
+    border-radius: 10px;
+    text-align: center;
+    outline: none;
+  }
+  
+  .overlay {
+    background: rgba(0, 0, 0, 0.5);
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .input {
+    width: 100%;
+    padding: 10px;
+    margin-top: 10px;
+    font-size: 16px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+  }
+  
+  .error {
+    color: red;
+    font-size: 14px;
+    margin-top: 5px;
+  }
+  
+  .closeModalButton {
+    margin-top: 15px;
+    padding: 10px 20px;
+    font-size: 16px;
+    color: white;
+    background-color: #ff4d4d;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
+  
+  .closeModalButton:hover {
+    background-color: #cc0000;
+  }
+  
