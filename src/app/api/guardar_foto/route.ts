@@ -1,6 +1,21 @@
+import { v2 as cloudinary } from 'cloudinary';
 import { NextRequest, NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
+import { Pool } from 'pg';
+
+// Configuración de Cloudinary
+cloudinary.config({
+  cloud_name: 'duwjlwibl',
+  api_key: '643454237478195',
+  api_secret: 'UMj3i4Sq3VoTBFGbil9N-VIh5T0'
+});
+
+// Configuración de PostgreSQL
+const pool = new Pool({
+  connectionString: process.env.POSTGRES_URL,
+  ssl: {
+    rejectUnauthorized: false,
+  },
+});
 
 export async function POST(req: NextRequest) {
   const formData = await req.formData();
@@ -12,25 +27,34 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    // Decodificar la foto en base64
-    const base64Data = photoData.replace(/^data:image\/\w+;base64,/, '');
-    const buffer = Buffer.from(base64Data, 'base64');
+    // Subir la foto a Cloudinary
+    const result = await cloudinary.uploader.upload(photoData, {
+      folder: 'fotos',
+      public_id: dni,
+      format: 'png',
+    });
 
-    // Definir la ruta para guardar la foto
-    const photosDir = path.join(process.cwd(), 'public', 'fotos');
-    const photoPath = path.join(photosDir, `${dni}.png`);
+    const photoUrl = result.secure_url;
 
-    // Crear el directorio si no existe
-    if (!fs.existsSync(photosDir)) {
-      fs.mkdirSync(photosDir, { recursive: true });
+    // Guardar la URL en la base de datos
+    const query = `
+      UPDATE legajos
+      SET foto_url = $1
+      WHERE dni = $2
+      RETURNING *;
+    `;
+
+    const values = [photoUrl, dni];
+
+    const dbResult = await pool.query(query, values);
+
+    if (dbResult.rowCount === 0) {
+      return NextResponse.json({ error: 'DNI no encontrado en la base de datos' }, { status: 404 });
     }
 
-    // Guardar la foto en el servidor
-    fs.writeFileSync(photoPath, buffer);
-
-    return NextResponse.json({ success: true, path: `/fotos/${dni}.png` });
+    return NextResponse.json({ success: true, url: photoUrl });
   } catch (error) {
-    console.error('Error al guardar la foto:', error);
+    console.error('Error al subir la foto o guardar en la base de datos:', error);
     return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
   }
 }

@@ -9,6 +9,7 @@ interface UserData {
   nombre: string;
   apellido: string;
   empresa?: string;
+  foto_url?: string;  // Agregamos la URL de la foto
 }
 
 const DropdownUser = () => {
@@ -56,7 +57,8 @@ const DropdownUser = () => {
     }
   };
 
-  const userImage = dni ? `/fotos/${dni}.png` : "/images/user/user-03.png";
+  // Usar la URL de Cloudinary si está disponible, sino una imagen por defecto
+  const userImage = userData?.foto_url || "/images/user/user-03.png";
 
   return (
     <ClickOutside onClick={() => setDropdownOpen(false)} className="relative">
@@ -81,9 +83,7 @@ const DropdownUser = () => {
           </span>
 
           <svg
-            className={`fill-current duration-200 ease-in ${
-              dropdownOpen && "rotate-180"
-            }`}
+            className={`fill-current duration-200 ease-in ${dropdownOpen && "rotate-180"}`}
             width="20"
             height="20"
           >

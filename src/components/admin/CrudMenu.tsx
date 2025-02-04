@@ -39,41 +39,52 @@ const CrudMenu: React.FC = () => {
   };
 
   const fetchMenus = async () => {
-    const response = await fetch('/api/menus_crud.php?action=read');
-    const data = await response.json();
-    if (data.success) {
-      setMenus(data.menus);
-    } else {
-      console.error("Error al obtener menús:", data.message);
+    try {
+      const response = await fetch('/api/menus', { method: 'GET' });
+      const data = await response.json();
+      setMenus(data);
+    } catch (error) {
+      console.error("Error al obtener menús:", error);
     }
   };
+  
 
   useEffect(() => {
     fetchMenus();
   }, []);
 
   const handleSaveMenu = async () => {
-    const apiEndpoint = editingMenu && editingMenu.id ? '/api/menus_crud.php?action=update' : '/api/menus_crud.php?action=create';
-    const response = await fetch(apiEndpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(editingMenu),
-    });
-    const data = await response.json();
-    if (data.success) {
-      fetchMenus();
-      handleCloseDialog();
-    } else {
-      console.error("Error al guardar el menú:", data.message);
+    const isEditing = editingMenu && editingMenu.id;
+    const apiEndpoint = '/api/menus';
+    const method = isEditing ? 'PUT' : 'POST';
+  
+    try {
+      const response = await fetch(apiEndpoint, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editingMenu),
+      });
+  
+      const data = await response.json();
+      if (response.ok) {
+        fetchMenus();
+        handleCloseDialog();
+      } else {
+        console.error("Error al guardar el menú:", data.error);
+      }
+    } catch (error) {
+      console.error("Error al guardar el menú:", error);
     }
   };
+
+  
 
   const handleDeleteMenu = async (id: string) => {
     if (!id) {
       console.error("ID no válido para la eliminación");
       return;
     }
-
+  
     const result = await Swal.fire({
       title: '¿Estás seguro?',
       text: `Eliminarás el menú con ID: ${id}`,
@@ -84,25 +95,29 @@ const CrudMenu: React.FC = () => {
       confirmButtonText: 'Sí, eliminar',
       cancelButtonText: 'Cancelar'
     });
-
+  
     if (result.isConfirmed) {
-      console.log("Eliminando menú con ID:", id);
-
-      const response = await fetch('/api/menus_crud.php?action=delete', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id }),
-      });
-      const data = await response.json();
-      if (data.success) {
-        fetchMenus();
-        Swal.fire('Eliminado', 'El menú ha sido eliminado exitosamente.', 'success');
-      } else {
-        Swal.fire('Error', 'No se pudo eliminar el menú.', 'error');
-        console.error("Error al eliminar el menú:", data.message);
+      try {
+        const response = await fetch('/api/menus', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id }),
+        });
+  
+        const data = await response.json();
+        if (response.ok) {
+          fetchMenus();
+          Swal.fire('Eliminado', 'El menú ha sido eliminado exitosamente.', 'success');
+        } else {
+          Swal.fire('Error', data.error || 'No se pudo eliminar el menú.', 'error');
+        }
+      } catch (error) {
+        console.error("Error al eliminar el menú:", error);
+        Swal.fire('Error', 'Ocurrió un problema al eliminar el menú.', 'error');
       }
     }
   };
+  
 
   const handleOpenDialog = (menu: Menu | null = null) => {
     setEditingMenu(menu || { fecha: '', tipo: '', nombre: '', ingredientes: '', calorias: 0, foto: '', cantidad_porcion: '' });

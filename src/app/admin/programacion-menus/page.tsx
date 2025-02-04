@@ -3,8 +3,6 @@
 import React, { useState, useEffect } from "react";
 import FullCalendar from "@fullcalendar/react";
 import { DateSelectArg, EventClickArg } from "@fullcalendar/core";
-
-//import FullCalendar, { DateSelectArg, EventClickArg } from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import Swal from "sweetalert2";
@@ -12,6 +10,7 @@ import DefaultLayout from "@/components/layout-admin/DefaultLaout";
 
 // Tipo para el evento del menú
 interface MenuEvent {
+  id?: number;
   tipo: string;
   nombre: string;
   fecha: string;
@@ -28,18 +27,18 @@ const CalendarDashboard: React.FC = () => {
   useEffect(() => {
     const fetchMenus = async () => {
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/fetch_all_menus.php`);
+        const response = await fetch('/api/menus', { method: 'GET' });
         const data = await response.json();
 
-        if (data.success) {
-          const loadedEvents = data.menus.map((menu: MenuEvent) => ({
-            title: `${menu.tipo}: ${menu.nombre}`,
-            start: menu.fecha,
-            backgroundColor: getColorByMenuType(menu.tipo),
-            extendedProps: { ...menu },
-          }));
-          setEvents(loadedEvents);
-        }
+        const loadedEvents = data.map((menu: MenuEvent) => ({
+          id: menu.id,
+          title: `${menu.tipo}: ${menu.nombre}`,
+          start: menu.fecha,
+          backgroundColor: getColorByMenuType(menu.tipo),
+          extendedProps: { ...menu },
+        }));
+
+        setEvents(loadedEvents);
       } catch (error) {
         console.error("Error al cargar menús:", error);
       }
@@ -66,7 +65,9 @@ const CalendarDashboard: React.FC = () => {
         <input type="text" id="cantidad_porcion" class="swal2-input" placeholder="Cantidad por Porción" />
       `,
       showCancelButton: true,
+      cancelButtonColor: 'Red',
       confirmButtonText: "Guardar",
+      confirmButtonColor: "Green",
       preConfirm: () => {
         const tipo = (document.getElementById("tipo") as HTMLSelectElement).value;
         const nombre = (document.getElementById("nombre") as HTMLInputElement).value;
@@ -109,25 +110,47 @@ const CalendarDashboard: React.FC = () => {
   // Guardar menú en el servidor
   const saveMenu = async (menu: MenuEvent) => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/save_menu.php`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+      const response = await fetch('/api/menus', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(menu),
       });
+
       const data = await response.json();
 
-      if (!data.success) {
-        Swal.fire("Error", data.message, "error");
+      if (!response.ok) {
+        Swal.fire("Error", data.error || "No se pudo guardar el menú", "error");
       }
     } catch (error) {
       Swal.fire("Error", "No se pudo guardar el menú", "error");
     }
   };
 
+  // Eliminar menú del servidor
+  const deleteMenu = async (id: number) => {
+    try {
+      const response = await fetch('/api/menus', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        Swal.fire("Eliminado", "El menú ha sido eliminado exitosamente.", "success");
+        setEvents(events.filter(event => event.id !== id));
+      } else {
+        Swal.fire("Error", data.error || "No se pudo eliminar el menú", "error");
+      }
+    } catch (error) {
+      Swal.fire("Error", "No se pudo eliminar el menú", "error");
+    }
+  };
+
   // Manejar clic en un evento
   const handleEventClick = (eventClickInfo: EventClickArg) => {
+    const { id } = eventClickInfo.event;
     const { tipo, nombre, ingredientes, calorias, foto, cantidad_porcion } = eventClickInfo.event.extendedProps;
 
     Swal.fire({
@@ -139,6 +162,14 @@ const CalendarDashboard: React.FC = () => {
         <p><strong>Cantidad por Porción:</strong> ${cantidad_porcion}</p>
         ${foto ? `<img src="${foto}" alt="Foto de ${nombre}" style="width:100%; margin-top:10px;" />` : ""}
       `,
+      showCancelButton: true,
+      confirmButtonText: 'Eliminar',
+      cancelButtonText: 'Cerrar',
+      confirmButtonColor: '#d33',
+    }).then((result) => {
+      if (result.isConfirmed && id) {
+        deleteMenu(parseInt(id as string));
+      }
     });
   };
 

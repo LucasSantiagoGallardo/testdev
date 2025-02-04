@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Box, Button, Card, CardContent, Grid, TextField, Typography } from "@mui/material";
+import { Box, Button, Card, CardContent, Grid, TextField, Typography, FormControl, InputLabel, Select, MenuItem } from "@mui/material";
 import axios from "axios";
 import Image from "next/image";
 
@@ -15,12 +15,22 @@ interface Election {
   foto: string;
   cantidad_porcion: string;
   comentario?: string;
+  turno?: string;
 }
 
 const UserElections: React.FC = () => {
   const [elections, setElections] = useState<Election[]>([]);
   const [comments, setComments] = useState<{ [key: string]: string }>({});
+  const [turnosDisponibles, setTurnosDisponibles] = useState<{ [key: string]: number }>({});
+  const [selectedTurnos, setSelectedTurnos] = useState<{ [key: string]: string }>({});
   const [userId, setUserId] = useState<string | null>(null);
+
+  const turnos = [
+    { label: "12:00 - 12:30", value: "12:00" },
+    { label: "12:30 - 13:00", value: "12:30" },
+    { label: "13:00 - 13:30", value: "13:00" },
+    { label: "13:30 - 14:00", value: "13:30" },
+  ];
 
   // Cargar DNI del localStorage al montar
   useEffect(() => {
@@ -30,11 +40,17 @@ const UserElections: React.FC = () => {
     }
   }, []);
 
-  // Cargar elecciones del usuario
+  // Cargar elecciones del usuario y turnos disponibles
+  useEffect(() => {
+    if (userId) {
+      fetchElections();
+      fetchTurnosDisponibles();
+    }
+  }, [userId]);
+
   const fetchElections = async () => {
     try {
-      if (!userId) return; // Asegurar que userId esté definido
-      const response = await axios.post("/api/fetch_user_elections.php", { userId });
+      const response = await axios.post("/api/elections", { userId });
       if (response.data.success) {
         setElections(response.data.elections);
         const initialComments = response.data.elections.reduce(
@@ -53,38 +69,58 @@ const UserElections: React.FC = () => {
     }
   };
 
-  // Llamar a fetchElections al cargar
-  useEffect(() => {
-    if (userId) fetchElections();
-  }, [userId]);
+  const fetchTurnosDisponibles = async () => {
+    try {
+      const response = await axios.get("/api/turnos");
+      if (response.data.success) {
+        setTurnosDisponibles(response.data.turnosDisponibles);
+      } else {
+        console.error("Error al obtener turnos disponibles:", response.data.message);
+      }
+    } catch (error) {
+      console.error("Error en la solicitud de turnos disponibles:", error);
+    }
+  };
 
-  // Manejar cambios en comentarios
   const handleCommentChange = (electionId: string, comment: string) => {
     setComments((prev) => ({ ...prev, [electionId]: comment }));
   };
 
-  // Guardar comentario en el servidor
-  const handleSaveComment = async (electionId: string) => {
+  const handleTurnoChange = (electionId: string, turno: string) => {
+    setSelectedTurnos((prev) => ({ ...prev, [electionId]: turno }));
+  };
+
+  const handleSaveElection = async (electionId: string) => {
     const comment = comments[electionId] || "";
+    const turno = selectedTurnos[electionId];
+
+    if (!turno) {
+      alert("Debe seleccionar un turno antes de guardar.");
+      return;
+    }
+
     try {
-      const response = await axios.post("/api/save_comment.php", {
+      const response = await axios.post("/api/save_election", {
         electionId,
         comment,
+        turno,
+        userId,
       });
       if (response.data.success) {
         fetchElections();
+        fetchTurnosDisponibles();
       } else {
-        console.error("Error al guardar el comentario:", response.data.message);
+        console.error("Error al guardar la elección:", response.data.message);
       }
     } catch (error) {
-      console.error("Error en la solicitud de guardar comentario:", error);
+      console.error("Error en la solicitud de guardar elección:", error);
     }
   };
 
   return (
     <Box p={4}>
       <Typography variant="h4" gutterBottom>
-        Últimas 7 Elecciones
+        Elige tu Menú y Turno de Almuerzo
       </Typography>
       <Grid container spacing={2}>
         {elections.map((election) => (
@@ -120,6 +156,27 @@ const UserElections: React.FC = () => {
                   </Box>
                 )}
 
+                <FormControl fullWidth margin="normal">
+                  <InputLabel id={`turno-label-${election.id}`}>Seleccionar Turno</InputLabel>
+                  <Select
+                    labelId={`turno-label-${election.id}`}
+                    value={selectedTurnos[election.id] || ""}
+                    onChange={(e) => handleTurnoChange(election.id, e.target.value)}
+                  >
+                    {turnos.map((turno) => (
+                      <MenuItem
+                        key={turno.value}
+                        value={turno.value}
+                        disabled={turnosDisponibles[`${election.fecha}-${turno.value}`] >= 20}
+                      >
+                        {turno.label} (
+                        {20 - (turnosDisponibles[`${election.fecha}-${turno.value}`] || 0)}
+                        {" "} lugares disponibles)
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+
                 <TextField
                   label="Comentario"
                   fullWidth
@@ -132,9 +189,9 @@ const UserElections: React.FC = () => {
                 <Button
                   variant="contained"
                   color="primary"
-                  onClick={() => handleSaveComment(election.id)}
+                  onClick={() => handleSaveElection(election.id)}
                 >
-                  Guardar Comentario
+                  Guardar Elección
                 </Button>
               </CardContent>
             </Card>

@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
 
     const client = await pool.connect();
 
-    // Consulta SQL
+    // Consulta SQL para obtener los datos del usuario
     const query = 'SELECT * FROM legajos WHERE "dni" = $1';
     const values = [dni];
     const result = await client.query(query, values);
@@ -31,16 +31,16 @@ export async function POST(req: NextRequest) {
     if (result.rows.length > 0) {
       const data = result.rows[0];
 
-      // Construir la respuesta
+      // Construir la respuesta incluyendo la foto
       const response = {
-        status: data.registrado === "1" ? 'registrado' : 'nuevo', // Comparar con string "1"
-
+        status: data.registrado === "1" ? 'registrado' : 'nuevo',
         nombre: data.NOMBRE || '',
         apellido: data.APELLIDO || '',
         registro: data.registrado || 0,
         area: data.AREA || '',
         empresa: data.EMPRESA || '',
         rfid: data.DAT2 || '',
+        foto_url: data.foto_url || '',  // Incluir la URL de la foto en la respuesta
       };
 
       return NextResponse.json(response);

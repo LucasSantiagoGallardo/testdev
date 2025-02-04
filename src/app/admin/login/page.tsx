@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import "./Login.css"; // Asegúrate de tener los estilos en un archivo CSS
+import "./login.css"; // Asegúrate de tener los estilos en un archivo CSS
 
 
 

@@ -3,7 +3,6 @@
 import React, { useEffect, useState } from "react";
 import { Box, Typography, Grid, Paper, Card, CardContent, Button } from "@mui/material";
 import axios from "axios";
-import UserElections from "./userElection";
 
 interface MenuOption {
   id: string;
@@ -28,7 +27,7 @@ const Dashboard: React.FC = () => {
   const [elections, setElections] = useState<Election[]>([]);
   const [notifications, setNotifications] = useState<string[]>([]);
 
-  const dni = localStorage.getItem("dni");
+  const dni = typeof window !== "undefined" ? localStorage.getItem("dni") : null;
 
   useEffect(() => {
     if (!dni) {
@@ -42,7 +41,7 @@ const Dashboard: React.FC = () => {
 
   const fetchTodayMenu = async () => {
     try {
-      const response = await axios.post("/api/menuhoy.php", { userId: dni });
+      const response = await axios.post("/api/menuhoy", { userId: dni });
       if (response.data.success) {
         if (response.data.reserved) {
           setMenu(response.data.menu);
@@ -59,7 +58,7 @@ const Dashboard: React.FC = () => {
 
   const fetchElections = async () => {
     try {
-      const response = await axios.post("/api/elections.php", { userId: dni });
+      const response = await axios.post("/api/elections", { userId: dni });
       if (response.data.success) {
         setElections(response.data.elections);
       } else {
@@ -72,7 +71,7 @@ const Dashboard: React.FC = () => {
 
   const fetchNotifications = async () => {
     try {
-      const response = await axios.get("/api/notifications.php");
+      const response = await axios.get("/api/notifications");
       if (response.data.success) {
         setNotifications(response.data.notifications);
       } else {
@@ -80,6 +79,27 @@ const Dashboard: React.FC = () => {
       }
     } catch (error) {
       console.error("Error en la solicitud de notificaciones:", error);
+    }
+  };
+
+  const handleReserve = async (menuId: string, menuName: string) => {
+    try {
+      const response = await axios.put("/api/elections", {
+        userId: dni,
+        fecha: new Date().toISOString().split('T')[0],
+        opcionMenu: menuName,
+        turno: 1, // Puedes permitir elegir turnos si quieres más adelante
+      });
+
+      if (response.data.success) {
+        alert('Menú reservado correctamente');
+        fetchTodayMenu();  // Refrescar el estado después de reservar
+        fetchElections();  // Refrescar elecciones
+      } else {
+        alert(response.data.message || "No se pudo reservar el menú");
+      }
+    } catch (error) {
+      console.error("Error al reservar el menú:", error);
     }
   };
 
@@ -140,7 +160,12 @@ const Dashboard: React.FC = () => {
                         />
                       </Box>
                     )}
-                    <Button variant="contained" color="primary" fullWidth disabled>
+                    <Button
+                      variant="contained"
+                      color="primary"
+                      fullWidth
+                      onClick={() => handleReserve(menu.id, menu.tipo)}
+                    >
                       Reservar
                     </Button>
                   </CardContent>
@@ -157,7 +182,6 @@ const Dashboard: React.FC = () => {
           Tus Últimas Elecciones
         </Typography>
         <Grid container spacing={2}>
-            <UserElections></UserElections>
           {elections.map((election) => (
             <Grid item xs={12} sm={6} md={4} key={election.id}>
               <Card sx={{ borderRadius: 3 }}>
@@ -173,7 +197,7 @@ const Dashboard: React.FC = () => {
       </Paper>
 
       {/* Notificaciones */}
-      <Paper elevation={3} sx={{ p: 4, borderRadius: 4, mb: 4 }}>
+      <Paper elevation={3} sx={{ p: 4, borderRadius: 4 }}>
         <Typography variant="h5" gutterBottom>
           Notificaciones
         </Typography>
@@ -182,31 +206,6 @@ const Dashboard: React.FC = () => {
             <li key={index}>{notification}</li>
           ))}
         </ul>
-      </Paper>
-
-      {/* Accesos Rápidos */}
-      <Paper elevation={3} sx={{ p: 4, borderRadius: 4 }}>
-        <Typography variant="h5" gutterBottom>
-          Accesos Rápidos
-        </Typography>
-        <Grid container spacing={2}>
-          <Grid item xs={12} sm={6} md={4}>
-            <Button variant="contained" fullWidth disabled
-            >
-              Reservar Menú
-            </Button>
-          </Grid>
-          <Grid item xs={12} sm={6} md={4}>
-            <Button variant="contained" fullWidth disabled >
-              Historial
-            </Button>
-          </Grid>
-          <Grid item xs={12} sm={6} md={4}>
-            <Button variant="contained" fullWidth disabled>
-              Editar Perfil
-            </Button>
-          </Grid>
-        </Grid>
       </Paper>
     </Box>
   );
