@@ -107,7 +107,8 @@ const UserMenuSelection = () => {
       return;
     }
 
-    // Preguntar al usuario qué turno quiere elegir
+   
+
     const { value: turnoSeleccionado } = await Swal.fire({
       title: `Seleccionar Turno para ${fechaSeleccionada}`,
       input: 'select',
@@ -120,8 +121,13 @@ const UserMenuSelection = () => {
       inputPlaceholder: 'Selecciona un turno',
       showCancelButton: true,
       confirmButtonText: 'Confirmar',
-      cancelButtonText: 'Cancelar'
+      confirmButtonColor: '#4caf50',
+      cancelButtonColor: '#f44336',
+      cancelButtonText: 'Cancelar',
+      buttonsStyling: true  // Asegúrate de que está en true
     });
+
+
 
     if (!turnoSeleccionado) {
       Swal.fire('Turno no seleccionado', 'Debes elegir un turno para continuar.', 'warning');

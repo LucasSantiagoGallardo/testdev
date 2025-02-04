@@ -188,7 +188,7 @@ const UserElections: React.FC = () => {
                 />
                 <Button
                   variant="contained"
-                  color="primary"
+                  color="success"
                   onClick={() => handleSaveElection(election.id)}
                 >
                   Guardar Elección
